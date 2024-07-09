@@ -27,13 +27,20 @@ public:
     ~wpHelper();
     static wpHelper* instantiate();
 
-    void change(int type);
+    enum class changeType {
+        NEXT,
+        PREV,
+        RANDOM,
+    };
+    void change(changeType type);
+    void addLib(string& path);
+    void showLibs();
 
 private:
     void loadInfo();
     int writeInfo(string& libPath, string& entry, bool add);
 
-    vector<string> mLibName;
+    vector<string> mLibName; // path of wallpaper libs
     map<string, vector<string>> mLib;
     vector<string> history;
 };

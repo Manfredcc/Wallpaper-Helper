@@ -1,6 +1,13 @@
 #include "wpHleper.h"
 
+/* ============= configuration start ============= */
 const char *wpRecycleBin = "~/.wpRecycleBin";
+vector<string> defaultLib = {
+    "/home/ll/1_resource/02_photo/wallpapers",
+    "/home/ll/.wpHelper",
+};
+
+/* ============== configuration end ============== */
 
 static bool wpDebugEnable = true;
 #define wpDebug(fmt, ...)   \
@@ -25,7 +32,14 @@ wpHelper::~wpHelper()
 wpHelper* wpHelper::instantiate()
 {
     wpHelper *pWp = new wpHelper();
-    
+
+    for (auto& it : defaultLib) {
+        pWp->addLib(it);
+        wpDebug("add defaultLib:%s", it.c_str());
+    }
+
+    pWp->loadInfo();
+
     return pWp;
 }
 
@@ -70,10 +84,10 @@ int wpHelper::writeInfo(string& libPath, string& entry, bool add)
     }
 
     string wpElement = string_format("%s/%s", libPath.c_str(), entry.c_str());
-    auto list = mLib[libPath];
+    auto& list = mLib[libPath];
     if (add) {
         list.push_back(wpElement);
-    } else {
+    } else { /* remove wallpaper to wpRecycleBin */
         for (auto it = list.begin(); it != list.end(); it++) {
             if (!strncmp(wpElement.c_str(), it->c_str(), strlen(it->c_str()))) {
                 list.erase(it);
@@ -107,11 +121,62 @@ void wpHelper::loadInfo()
     int ret = 0;
 
     for (size_t i = 0; i < mLibName.size(); i++) {
+        /* create wallpaper lib path if it doesn't exist */
+        if (-1 == access(mLibName[i].c_str(), F_OK)) {
+            wpDebug("%s is not exists, creates it", mLibName[i].c_str());
+            if (-1 == mkdir(mLibName[i].c_str(), 0666)) {
+                wpDebug("Failed to created %s, continue", mLibName[i].c_str());
+                continue;
+            }
+        }
+
+        /* iterate over all wallpaper libs and load info */
         if (NULL != (dir = opendir(mLibName[i].c_str()))) {
             while (NULL != (ent = readdir(dir))) {
                 string entry(ent->d_name);
                 ret |= writeInfo(mLibName[i], entry, true);
             }
+        } else {
+            wpDebug("Failed to open %s, continue", mLibName[i].c_str());
+            continue;
+        }
+    }
+}
+
+/*
+ * change wallpaper in specific type
+ * @type: next/previous/random
+ */
+void wpHelper::change(changeType type)
+{
+    switch (type) {
+    case changeType::NEXT:
+        break;
+    case changeType::PREV:
+        break;
+    case changeType::RANDOM:
+        break;
+    default:
+        wpDebug("bad logic case!");
+        break;
+    }
+}
+
+/*
+ * add wallpaper lib path
+ */
+void wpHelper::addLib(string& path)
+{
+    mLibName.push_back(path);
+    mLib[path] = {};
+}
+
+void wpHelper::showLibs()
+{
+    for (auto& it : mLib) {
+        cout << "mLib->first: " << it.first << endl;
+        for (auto& elem : it.second) {
+            cout << "elem: " << elem << endl;
         }
     }
 }
