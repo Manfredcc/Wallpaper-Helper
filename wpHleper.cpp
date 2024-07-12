@@ -80,7 +80,7 @@ static inline string string_format(const string& str, Args ... args)
 /*
  * Add/remove wallpaper in libs
  */
-int wpHelper::writeInfo(string& libPath, string& entry, bool add)
+int wpHelper::writeInfo(string libPath, string& entry, bool add)
 {
     if (0 != filterWp(entry)) {
         return -1;
@@ -100,7 +100,7 @@ int wpHelper::writeInfo(string& libPath, string& entry, bool add)
 
         if (-1 == access(wpRecycleBin, F_OK)) {
             wpDebug("%s is not exists, creates it", wpRecycleBin);
-            if (-1 == mkdir(wpRecycleBin, 0666)) {
+            if (-1 == mkdir(wpRecycleBin, 0777)) {
                 wpDebug("failed to create %s", wpRecycleBin);
                 return -1;
             }
@@ -123,24 +123,24 @@ void wpHelper::loadInfo()
     struct dirent *ent;
     int ret = 0;
 
-    for (size_t i = 0; i < mLibName.size(); i++) {
+    for (auto &p : mLib) {
         /* create wallpaper lib path if it doesn't exist */
-        if (-1 == access(mLibName[i].c_str(), F_OK)) {
-            wpDebug("%s is not exists, creates it", mLibName[i].c_str());
-            if (-1 == mkdir(mLibName[i].c_str(), 0666)) {
-                wpDebug("Failed to created %s, continue", mLibName[i].c_str());
+        if (-1 == access(p.first.c_str(), F_OK)) {
+            wpDebug("%s is not exists, creates it", p.first.c_str());
+            if (-1 == mkdir(p.first.c_str(), 0777)) {
+                wpDebug("Failed to created %s, continue", p.first.c_str());
                 continue;
             }
         }
 
         /* iterate over all wallpaper libs and load info */
-        if (NULL != (dir = opendir(mLibName[i].c_str()))) {
+        if (NULL != (dir = opendir(p.first.c_str()))) {
             while (NULL != (ent = readdir(dir))) {
                 string entry(ent->d_name);
-                ret |= writeInfo(mLibName[i], entry, true);
+                ret |= writeInfo(p.first, entry, true);
             }
         } else {
-            wpDebug("Failed to open %s, continue", mLibName[i].c_str());
+            wpDebug("Failed to open %s, continue", p.first.c_str());
             continue;
         }
     }
@@ -170,15 +170,6 @@ void wpHelper::change(changeType type)
         wpDebug("bad logic case!");
         break;
     }
-}
-
-/*
- * add wallpaper lib path
- */
-void wpHelper::addLib(string& path)
-{
-    mLibName.push_back(path);
-    mLib[path] = {};
 }
 
 void wpHelper::showLibs()
