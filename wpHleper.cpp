@@ -2,6 +2,9 @@
 
 /* ============= configuration start ============= */
 const char *wpRecycleBin = "~/.wpRecycleBin";
+
+const char *wpChangeCmd = "feh --bg-fill --recursive";
+
 vector<string> defaultLib = {
     "/home/ll/1_resource/02_photo/wallpapers",
     "/home/ll/.wpHelper",
@@ -141,6 +144,13 @@ void wpHelper::loadInfo()
             continue;
         }
     }
+}
+
+static inline void change(const string& wp)
+{
+    string cmd = string_format("%s %s", wpChangeCmd, wp.c_str());
+    wpDebug("integrated cmd is:%s", cmd.c_str());
+    system(cmd.c_str());
 }
 
 /*
