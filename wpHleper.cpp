@@ -80,20 +80,18 @@ static inline string string_format(const string& str, Args ... args)
 /*
  * Add/remove wallpaper in libs
  */
-int wpHelper::writeInfo(string libPath, string& entry, bool add)
+int wpHelper::writeInfo(const string& elem, bool add)
 {
-    if (0 != filterWp(entry)) {
+    if (0 != filterWp(elem)) {
         return -1;
     }
 
-    string wpElement = string_format("%s/%s", libPath.c_str(), entry.c_str());
-    auto& list = mLib[libPath];
     if (add) {
-        list.push_back(wpElement);
+        mWpList.push_back(elem);
     } else { /* remove wallpaper to wpRecycleBin */
-        for (auto it = list.begin(); it != list.end(); it++) {
-            if (!strncmp(wpElement.c_str(), it->c_str(), strlen(it->c_str()))) {
-                list.erase(it);
+        for (auto it = mWpList.begin(); it != mWpList.end(); it++) {
+            if (elem == *it) {
+                mWpList.erase(it);
                 break;
             }
         }
@@ -105,9 +103,9 @@ int wpHelper::writeInfo(string libPath, string& entry, bool add)
                 return -1;
             }
         }
-        string cmd = string_format("mv %s %s", wpElement.c_str(), wpRecycleBin);
+        string cmd = string_format("mv %s %s", elem.c_str(), wpRecycleBin);
         system(cmd.c_str());
-        wpDebug("delete %s", wpElement.c_str());
+        wpDebug("delete %s", elem.c_str());
     }
 
     return 0;
@@ -125,27 +123,30 @@ void wpHelper::loadInfo()
 
     for (auto &p : mLib) {
         /* create wallpaper lib path if it doesn't exist */
-        if (-1 == access(p.first.c_str(), F_OK)) {
-            wpDebug("%s is not exists, creates it", p.first.c_str());
-            if (-1 == mkdir(p.first.c_str(), 0777)) {
-                wpDebug("Failed to created %s, continue", p.first.c_str());
+        if (-1 == access(p.c_str(), F_OK)) {
+            wpDebug("%s is not exists, creates it", p.c_str());
+            if (-1 == mkdir(p.c_str(), 0777)) {
+                wpDebug("Failed to created %s, continue", p.c_str());
                 continue;
             }
         }
 
         /* iterate over all wallpaper libs and load info */
-        if (NULL != (dir = opendir(p.first.c_str()))) {
+        if (NULL != (dir = opendir(p.c_str()))) {
             while (NULL != (ent = readdir(dir))) {
-                string entry(ent->d_name);
-                ret |= writeInfo(p.first, entry, true);
+                string elem = string_format("%s/%s", p.c_str(), ent->d_name);
+                ret |= writeInfo(elem, true);
             }
         } else {
-            wpDebug("Failed to open %s, continue", p.first.c_str());
+            wpDebug("Failed to open %s, continue", p.c_str());
             continue;
         }
     }
 }
 
+/*
+ * provide with basic wallpaper change command
+ */
 static inline void change(const string& wp)
 {
     string cmd = string_format("%s %s", wpChangeCmd, wp.c_str());
@@ -159,6 +160,8 @@ static inline void change(const string& wp)
  */
 void wpHelper::change(changeType type)
 {
+    list<string>::iterator it;
+
     switch (type) {
     case changeType::NEXT:
         break;
@@ -175,9 +178,10 @@ void wpHelper::change(changeType type)
 void wpHelper::showLibs()
 {
     for (auto& it : mLib) {
-        cout << "mLib->first: " << it.first << endl;
-        for (auto& elem : it.second) {
-            cout << "elem: " << elem << endl;
-        }
+        cout << "LibName: " << it << endl;
+    }
+
+    for (auto& elem : mWpList) {
+        cout << "elem: " << elem << endl;
     }
 }

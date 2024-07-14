@@ -34,15 +34,17 @@ public:
         RANDOM,
     };
     void change(changeType type);
-    void addLib(string& path) { mLib[path] = {}; }
+    void addLib(string& path) { mLib.push_back(path); }
     void showLibs();
 
 private:
     void loadInfo();
-    int writeInfo(string libPath, string& entry, bool add);
+    int writeInfo(const string& elem, bool add);
 
-    map<string, vector<string>> mLib;
-    vector<string> history;
+    // map<string, vector<string>> mLib;
+    vector<string> mLib;
+    list<string> mWpList;
+    vector<string> mHistory;
 };
 
 
