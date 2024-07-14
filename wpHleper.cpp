@@ -82,6 +82,7 @@ static inline string string_format(const string& str, Args ... args)
  */
 int wpHelper::writeInfo(const string& elem, bool add)
 {
+    lock_guard<mutex> lock(mInfoLock);
     if (0 != filterWp(elem)) {
         return -1;
     }

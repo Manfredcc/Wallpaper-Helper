@@ -34,17 +34,21 @@ public:
         RANDOM,
     };
     void change(changeType type);
-    void addLib(string& path) { mLib.push_back(path); }
+    void addLib(string& path) {
+        lock_guard<mutex> lock(mInfoLock);
+        mLib.push_back(path);
+    }
     void showLibs();
 
 private:
     void loadInfo();
     int writeInfo(const string& elem, bool add);
 
-    // map<string, vector<string>> mLib;
     vector<string> mLib;
     list<string> mWpList;
     vector<string> mHistory;
+    string mCurWp;
+    mutex mInfoLock;
 };
 
 
