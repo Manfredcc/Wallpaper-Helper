@@ -10,6 +10,11 @@ vector<string> defaultLib = {
     "/home/ll/.wpHelper",
 };
 
+// static int autoSwitchInterval = 5 * 60; // seconds
+static int autoSwitchInterval = 3; // seconds
+static bool autoSwitchEnable = true;
+static wpHelper::changeType autoSwitchtype = wpHelper::changeType::NEXT;
+
 /* ============== configuration end ============== */
 
 static bool wpDebugEnable = true;
@@ -24,11 +29,18 @@ static bool wpDebugEnable = true;
 
 wpHelper::wpHelper() : mWpNum(0), mCurWp(0)
 {
+    mAutoSwitch = { autoSwitchInterval, autoSwitchEnable, autoSwitchtype };
     wpDebug("wpHelper");
 }
 
 wpHelper::~wpHelper()
 {
+	for (auto& t : mThreads) {
+		if (t.joinable()) {
+			t.join();
+		}
+	}
+ 
     wpDebug("~wpHelper()");
 }
 
@@ -42,6 +54,7 @@ wpHelper* wpHelper::instantiate()
     }
 
     pWp->loadInfo();
+    pWp->OnThreads();
 
     return pWp;
 }
@@ -216,4 +229,21 @@ void wpHelper::showLibs()
     for (auto& elem : mWpList) {
         cout << "elem: " << elem.second << endl;
     }
+}
+
+void wpHelper::autoSwitchT()
+{
+    for (;;) {
+        if (mAutoSwitch.enable) {
+            change(mAutoSwitch.type);
+        }
+        
+        sleep(mAutoSwitch.interval);
+    }
+}
+
+void wpHelper::OnThreads()
+{
+    thread t(&wpHelper::autoSwitchT, this);
+    mThreads.push_back(move(t));
 }

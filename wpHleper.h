@@ -46,6 +46,20 @@ private:
     void loadInfo();
     int writeInfo(const string& elem, bool add);
 
+    /* -- threads -- */
+    // auto switch wallpaper
+    void autoSwitchT();
+    typedef struct _autoSwitch {
+        int interval;
+        bool enable;
+        changeType type;
+    } autoSwitch;
+    autoSwitch mAutoSwitch;
+
+    void OnThreads();
+    vector<thread> mThreads;
+    /* -- threads -- */
+
     vector<string> mLib;
     map<int, string> mWpList;
     int mWpNum;
