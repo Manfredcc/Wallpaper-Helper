@@ -22,7 +22,7 @@ static bool wpDebugEnable = true;
 
 
 
-wpHelper::wpHelper()
+wpHelper::wpHelper() : mWpNum(0), mCurWp(0)
 {
     wpDebug("wpHelper");
 }
@@ -88,11 +88,11 @@ int wpHelper::writeInfo(const string& elem, bool add)
     }
 
     if (add) {
-        mWpList[index++] = elem;
+        mWpList[mWpNum++] = elem;
     } else { /* remove wallpaper to wpRecycleBin */
         for (auto it = mWpList.begin(); it != mWpList.end(); it++) {
             if (it->second == elem) {
-                it = mWpList.erase(it);
+                it->second = "";
                 wpDebug("found %s and delete it from wpList", elem.c_str());
                 break;
             }
@@ -149,9 +149,14 @@ void wpHelper::loadInfo()
 /*
  * provide with basic wallpaper change command
  */
-static inline void change(const string& wp)
+void wpHelper::change(const string& wp)
 {
     string cmd = string_format("%s %s", wpChangeCmd, wp.c_str());
+    if (-1 == access(wp.c_str(), F_OK)) {
+        wpDebug("can't access %s", wp.c_str());
+        return;
+    }
+
     wpDebug("integrated cmd is:%s", cmd.c_str());
     system(cmd.c_str());
 }
@@ -162,19 +167,44 @@ static inline void change(const string& wp)
  */
 void wpHelper::change(changeType type)
 {
-    list<string>::iterator it;
-
+    lock_guard<mutex> lock(mInfoLock);
     switch (type) {
-    case changeType::NEXT:
-        break;
-    case changeType::PREV:
-        break;
-    case changeType::RANDOM:
-        break;
-    default:
-        wpDebug("bad logic case!");
-        break;
+    case changeType::NEXT: {
+            mHistory.push_back(mCurWp);
+            do {
+                mCurWp = (mCurWp != mWpNum) ? (mCurWp + 1) : 0;
+                if (mWpList[mCurWp] == "")
+                    continue;
+                
+                break;
+            } while (1);
+            break;
+        }
+
+        case changeType::PREV: {
+            mCurWp = mHistory.back();
+            mHistory.pop_back();
+            break;
+        }
+
+        case changeType::RANDOM: {
+            mHistory.push_back(mCurWp);
+            random_device rd;
+            mt19937 gen(rd());
+            uniform_int_distribution<> dis(0, mWpNum);
+            int random_number = dis(gen);
+            mCurWp = random_number;
+            break;
+        }
+
+        default:{
+            wpDebug("bad logic case!");
+            break;
+        }
     }
+
+    wpDebug("mCurWp:%d", mCurWp);
+    change(mWpList[mCurWp]);
 }
 
 void wpHelper::showLibs()

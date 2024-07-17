@@ -13,6 +13,7 @@
 #include <map>
 #include <cstring>
 #include <cstdlib>
+#include <random>
 
 #include <unistd.h>
 #include <dirent.h>
@@ -34,6 +35,7 @@ public:
         RANDOM,
     };
     void change(changeType type);
+    void change(const string& wp);
     void addLib(string& path) {
         lock_guard<mutex> lock(mInfoLock);
         mLib.push_back(path);
@@ -46,9 +48,9 @@ private:
 
     vector<string> mLib;
     map<int, string> mWpList;
-    int index;
-    vector<string> mHistory;
-    string mCurWp;
+    int mWpNum;
+    vector<int> mHistory;
+    int mCurWp;
     mutex mInfoLock;
 };
 
