@@ -235,7 +235,11 @@ void wpHelper::autoSwitchT()
 {
     for (;;) {
         if (mAutoSwitch.enable) {
-            change(mAutoSwitch.type);
+            changeType type = mAutoSwitch.type;
+            if (0 == mHistory.size() && mAutoSwitch.type == changeType::PREV) {
+                type = changeType::RANDOM;
+            }
+            change(type);
         }
         
         sleep(mAutoSwitch.interval);
