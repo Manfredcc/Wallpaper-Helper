@@ -45,7 +45,8 @@ private:
     int writeInfo(const string& elem, bool add);
 
     vector<string> mLib;
-    list<string> mWpList;
+    map<int, string> mWpList;
+    int index;
     vector<string> mHistory;
     string mCurWp;
     mutex mInfoLock;

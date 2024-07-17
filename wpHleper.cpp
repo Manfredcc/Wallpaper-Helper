@@ -88,11 +88,12 @@ int wpHelper::writeInfo(const string& elem, bool add)
     }
 
     if (add) {
-        mWpList.push_back(elem);
+        mWpList[index++] = elem;
     } else { /* remove wallpaper to wpRecycleBin */
         for (auto it = mWpList.begin(); it != mWpList.end(); it++) {
-            if (elem == *it) {
-                mWpList.erase(it);
+            if (it->second == elem) {
+                it = mWpList.erase(it);
+                wpDebug("found %s and delete it from wpList", elem.c_str());
                 break;
             }
         }
@@ -183,6 +184,6 @@ void wpHelper::showLibs()
     }
 
     for (auto& elem : mWpList) {
-        cout << "elem: " << elem << endl;
+        cout << "elem: " << elem.second << endl;
     }
 }
