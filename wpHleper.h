@@ -40,6 +40,7 @@ public:
         lock_guard<mutex> lock(mInfoLock);
         mLib.push_back(path);
     }
+    void setAutoSwitch(int interval, bool enable, changeType type);
     void showLibs();
 
 private:
@@ -55,6 +56,7 @@ private:
         changeType type;
     } autoSwitch;
     autoSwitch mAutoSwitch;
+    mutex mAutoSwitchLock;
 
     void OnThreads();
     vector<thread> mThreads;

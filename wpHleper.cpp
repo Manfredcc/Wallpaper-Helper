@@ -10,8 +10,7 @@ vector<string> defaultLib = {
     "/home/ll/.wpHelper",
 };
 
-// static int autoSwitchInterval = 5 * 60; // seconds
-static int autoSwitchInterval = 3; // seconds
+static int autoSwitchInterval = 5 * 60; // seconds
 static bool autoSwitchEnable = true;
 static wpHelper::changeType autoSwitchtype = wpHelper::changeType::NEXT;
 
@@ -234,15 +233,18 @@ void wpHelper::showLibs()
 void wpHelper::autoSwitchT()
 {
     for (;;) {
-        if (mAutoSwitch.enable) {
-            changeType type = mAutoSwitch.type;
-            if (0 == mHistory.size() && mAutoSwitch.type == changeType::PREV) {
+        mAutoSwitchLock.lock();
+        autoSwitch tmp = mAutoSwitch;
+        mAutoSwitchLock.unlock();
+        if (tmp.enable) {
+            changeType type = tmp.type;
+            if (0 == mHistory.size() && tmp.type == changeType::PREV) {
                 type = changeType::RANDOM;
             }
             change(type);
         }
         
-        sleep(mAutoSwitch.interval);
+        sleep(tmp.interval);
     }
 }
 
@@ -250,4 +252,12 @@ void wpHelper::OnThreads()
 {
     thread t(&wpHelper::autoSwitchT, this);
     mThreads.push_back(move(t));
+}
+
+void wpHelper::setAutoSwitch(int interval, bool enable, changeType type)
+{
+    lock_guard<mutex> lock(mAutoSwitchLock);
+    mAutoSwitch.interval = interval;
+    mAutoSwitch.enable = enable;
+    mAutoSwitch.type = type;
 }
