@@ -14,6 +14,8 @@ static int autoSwitchInterval = 5 * 60; // seconds
 static bool autoSwitchEnable = true;
 static wpHelper::changeType autoSwitchtype = wpHelper::changeType::NEXT;
 
+#define THREAD_NUMS 10
+
 /* ============== configuration end ============== */
 
 static bool wpDebugEnable = true;
@@ -26,7 +28,7 @@ static bool wpDebugEnable = true;
 
 
 
-wpHelper::wpHelper() : mWpNum(0), mCurWp(0)
+wpHelper::wpHelper() : mPool(THREAD_NUMS), mWpNum(0), mCurWp(0)
 {
     mAutoSwitch = { autoSwitchInterval, autoSwitchEnable, autoSwitchtype };
     wpDebug("wpHelper");
@@ -34,12 +36,6 @@ wpHelper::wpHelper() : mWpNum(0), mCurWp(0)
 
 wpHelper::~wpHelper()
 {
-	for (auto& t : mThreads) {
-		if (t.joinable()) {
-			t.join();
-		}
-	}
- 
     wpDebug("~wpHelper()");
 }
 
@@ -250,8 +246,7 @@ void wpHelper::autoSwitchT()
 
 void wpHelper::OnThreads()
 {
-    thread t(&wpHelper::autoSwitchT, this);
-    mThreads.push_back(move(t));
+    mPool.enqueue(bind(&wpHelper::autoSwitchT, this));
 }
 
 void wpHelper::setAutoSwitch(int interval, bool enable, changeType type)

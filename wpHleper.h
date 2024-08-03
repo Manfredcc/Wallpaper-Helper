@@ -21,6 +21,8 @@
 #include <sys/types.h>
 #include <sys/inotify.h>
 
+#include "ThreadPool/ThreadPool.h"
+
 using namespace std;
 
 class wpHelper {
@@ -47,7 +49,11 @@ private:
     void loadInfo();
     int writeInfo(const string& elem, bool add);
 
-    /* -- threads -- */
+    /* thread pool */
+    vector<future<int>> results;
+    ThreadPool mPool;
+    void OnThreads();
+
     // auto switch wallpaper
     void autoSwitchT();
     typedef struct _autoSwitch {
@@ -57,10 +63,6 @@ private:
     } autoSwitch;
     autoSwitch mAutoSwitch;
     mutex mAutoSwitchLock;
-
-    void OnThreads();
-    vector<thread> mThreads;
-    /* -- threads -- */
 
     vector<string> mLib;
     map<int, string> mWpList;
