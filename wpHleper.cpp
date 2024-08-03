@@ -282,6 +282,8 @@ int wpHelper::monitorLibT()
             if (wd < 0) {
                 wpDebug("failed to add %s to the monitor", mLib[i].c_str());
                 continue;
+            } else {
+                nameWdMap[mLib[i]] = wd;
             }
         }
 
@@ -313,7 +315,26 @@ int wpHelper::monitorLibT()
 			for (int i = 0; i < length;) {
 				struct inotify_event *event = (struct inotify_event *)&buffer[i];
 				if (event->len) {
-                    wpDebug("wp elem changed:%s", event->name);
+                    string wp;
+                    for (auto& it : nameWdMap) { // get complete path of changed file under monitored lib
+                        if (it.second == event->wd) {
+                            wp = string_format("%s/%s", it.first.c_str(), event->name);
+                            wpDebug("wp elem changed,wd[%d]:%s",event->wd,  wp.c_str());
+                            break;
+                        }
+                    }
+
+                    switch (event->mask) { // get specific action of inotify
+                    case IN_CREATE:
+                        writeInfo(wp, true);
+                        break;
+                    case IN_DELETE:
+                        writeInfo(wp, false);;
+                        break;
+                    default:
+                        wpDebug("logic flow shouldn't get here");
+                        break;
+                    }
 				}
 
 				i += EVENT_SIZE + event->len;
