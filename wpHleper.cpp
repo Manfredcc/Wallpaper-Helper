@@ -212,9 +212,15 @@ void wpHelper::change(changeType type)
             mHistory.emplace_back(mCurWp);
             random_device rd;
             mt19937 gen(rd());
+            int random_number = 0;
             uniform_int_distribution<> dis(0, mWpNum);
-            int random_number = dis(gen);
-            mCurWp = random_number;
+            do {
+                random_number = dis(gen);
+                if (mWpList[random_number] == "")
+                    continue;
+
+                mCurWp = random_number;
+            } while (1);
             break;
         }
 
