@@ -28,7 +28,8 @@ static bool wpDebugEnable = true;
 
 
 
-wpHelper::wpHelper() : mPool(THREAD_NUMS), mWpNum(0), mCurWp(0)
+wpHelper::wpHelper() : mPool(THREAD_NUMS), mLibChangedInRuntime(false),
+    mWpNum(0), mCurWp(0)
 {
     mAutoSwitch = { autoSwitchInterval, autoSwitchEnable, autoSwitchtype };
     wpDebug("wpHelper");
@@ -44,7 +45,7 @@ wpHelper* wpHelper::instantiate()
     wpHelper *pWp = new wpHelper();
 
     for (auto& it : defaultLib) {
-        pWp->addLib(it);
+        pWp->modifyLib(it, true);
         wpDebug("add defaultLib:%s", it.c_str());
     }
 
@@ -52,6 +53,18 @@ wpHelper* wpHelper::instantiate()
     pWp->OnThreads();
 
     return pWp;
+}
+
+void wpHelper::modifyLib(string& path, bool flag)
+{
+    lock_guard<mutex> lock(mInfoLock);
+    if (flag) {
+        mLib.emplace_back(path);
+    } else {
+        mLib.erase(remove(mLib.begin(), mLib.end(), path), mLib.end());
+    }
+
+    mLibChangedInRuntime = true;
 }
 
 /*
@@ -178,7 +191,7 @@ void wpHelper::change(changeType type)
     lock_guard<mutex> lock(mInfoLock);
     switch (type) {
     case changeType::NEXT: {
-            mHistory.push_back(mCurWp);
+            mHistory.emplace_back(mCurWp);
             do {
                 mCurWp = (mCurWp != mWpNum) ? (mCurWp + 1) : 0;
                 if (mWpList[mCurWp] == "")
@@ -196,7 +209,7 @@ void wpHelper::change(changeType type)
         }
 
         case changeType::RANDOM: {
-            mHistory.push_back(mCurWp);
+            mHistory.emplace_back(mCurWp);
             random_device rd;
             mt19937 gen(rd());
             uniform_int_distribution<> dis(0, mWpNum);
@@ -244,9 +257,69 @@ void wpHelper::autoSwitchT()
     }
 }
 
+#define EVENT_SIZE  (sizeof(struct inotify_event))
+#define EVENT_BUF_LEN     (1024 * (EVENT_SIZE + 16))
+int wpHelper::monitorLibT()
+{
+    int inotifyFd = inotify_init();
+    if (inotifyFd < 0) {
+        wpDebug("failed to initialize inotify fd");
+    }
+
+    map<string, int> nameWdMap;
+    {
+        lock_guard<mutex> lock(mInfoLock);
+        size_t i = 0;
+        for (; i < mLib.size(); i++) {
+            int wd = inotify_add_watch(inotifyFd, mLib[i].c_str(), IN_CREATE | IN_DELETE);
+
+            if (wd < 0) {
+                wpDebug("failed to add %s to the monitor", mLib[i].c_str());
+                continue;
+            }
+        }
+
+        if (0 == i) {
+            wpDebug("monitor action had been deeply failure!");
+            return -1;
+        }
+    }
+
+    fd_set rfds;
+	FD_ZERO(&rfds);
+	FD_SET(inotifyFd, &rfds);
+
+    for (;;) {
+        int ret = select(inotifyFd + 1, &rfds, NULL, NULL, NULL);
+        if (ret < 0) {
+			wpDebug("add fd-set to select fail");
+			return ret;
+		}
+
+        if (FD_ISSET(inotifyFd, &rfds)) {
+			char buffer[EVENT_BUF_LEN];
+			int length = read(inotifyFd, buffer, EVENT_BUF_LEN);
+			if (length < 0) {
+                wpDebug("read error");
+				return length;
+			}
+
+			for (int i = 0; i < length;) {
+				struct inotify_event *event = (struct inotify_event *)&buffer[i];
+				if (event->len) {
+                    wpDebug("wp elem changed:%s", event->name);
+				}
+
+				i += EVENT_SIZE + event->len;
+			}
+		}
+    }
+}
+
 void wpHelper::OnThreads()
 {
     mPool.enqueue(bind(&wpHelper::autoSwitchT, this));
+    mPool.enqueue(bind(&wpHelper::monitorLibT, this));
 }
 
 void wpHelper::setAutoSwitch(int interval, bool enable, changeType type)

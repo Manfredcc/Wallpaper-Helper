@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/inotify.h>
+#include <fcntl.h>
 
 #include "ThreadPool/ThreadPool.h"
 
@@ -38,10 +39,7 @@ public:
     };
     void change(changeType type);
     void change(const string& wp);
-    void addLib(string& path) {
-        lock_guard<mutex> lock(mInfoLock);
-        mLib.push_back(path);
-    }
+    void modifyLib(string& path, bool flag);
     void setAutoSwitch(int interval, bool enable, changeType type);
     void showLibs();
 
@@ -64,7 +62,11 @@ private:
     autoSwitch mAutoSwitch;
     mutex mAutoSwitchLock;
 
+    // monitor lib
+    int monitorLibT();
+
     vector<string> mLib;
+    bool mLibChangedInRuntime;
     map<int, string> mWpList;
     int mWpNum;
     vector<int> mHistory;
